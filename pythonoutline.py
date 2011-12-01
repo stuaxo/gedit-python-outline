@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-
+from xml.sax.saxutils import quoteattr
 from gi.repository import Gtk, GObject, Gedit, GdkPixbuf
 try:
     from logilab.astng import builder
@@ -51,6 +51,7 @@ class OutlineBox(Gtk.Grid):
         treeview.set_enable_search(True)
         treeview.set_can_focus(False)
         treeview.set_reorderable(False)
+        treeview.set_tooltip_column(4)
         treeselection = treeview.get_selection()
         treeselection.connect('changed', self.on_selection_changed)
 
@@ -69,8 +70,8 @@ class OutlineBox(Gtk.Grid):
 
         # create renderer for the text in each row
         render_text = Gtk.CellRendererText()
-        render_pixbuf.set_property('xalign', 0)
-        render_pixbuf.set_property('yalign', 0.5)
+        render_text.set_property('xalign', 0)
+        render_text.set_property('yalign', 0.5)
         col.pack_start(render_text, True)
         col.add_attribute(render_text, 'text', 1)
 
@@ -107,7 +108,7 @@ class OutlineModel(Gtk.TreeStore):
         Gtk.TreeStore.__init__(self, GdkPixbuf.Pixbuf, str, str, int, str)
 
         if not builder:
-            self.append(None, [self.errorIcon, 'logilab.astng missing or invalid', None, -1, ''])
+            self.append(None, [self.errorIcon, 'logilab.astng missing or invalid', None, -1, None])
             return
         
         start, end = document.get_bounds()
@@ -116,7 +117,7 @@ class OutlineModel(Gtk.TreeStore):
         try:
             tree = builder.ASTNGBuilder().string_build(text)
         except Exception, e:
-            self.append(None, [self.errorIcon, '%s\n\t%s' % (e.__class__.__name__, e.msg), None, e.lineno-1, e.text])
+            self.append(None, [self.errorIcon, '%s\n\t%s' % (e.__class__.__name__, e.msg), None, e.lineno-1, self._docstring_error(e)])
             return
 
         for n in tree.body:
@@ -125,34 +126,33 @@ class OutlineModel(Gtk.TreeStore):
     def append_member(self, member, parent=None):
         classname = member.__class__.__name__
         lineno = member.lineno - 1 # document is zero indexed
-        docstring = getattr(member, 'doc', '')
 
         if classname == 'From':
             for name, alias in member.names:
                 if alias:
-                    item = self.append(parent, [self.importIcon, '%s [%s] from %s' % (alias, name, member.modname), classname, lineno, docstring])
+                    item = self.append(parent, [self.importIcon, '%s [%s] from %s' % (alias, name, member.modname), classname, lineno, self._docstring_import(member, name, alias)])
                 else:
-                    item = self.append(parent, [self.importIcon, '%s from %s' % (name, member.modname), classname, lineno, docstring])
+                    item = self.append(parent, [self.importIcon, '%s from %s' % (name, member.modname), classname, lineno, self._docstring_import(member, name)])
         elif classname == 'Import':
             for name, alias in member.names:
                 if alias:
-                    item = self.append(parent, [self.importIcon, '%s [%s]' % (alias, name), classname, lineno, docstring])
+                    item = self.append(parent, [self.importIcon, '%s [%s]' % (alias, name), classname, lineno, self._docstring_import(member, name, alias)])
                 else:
-                    item = self.append(parent, [self.importIcon, name, classname, lineno, docstring])
+                    item = self.append(parent, [self.importIcon, name, classname, lineno, self._docstring_import(member, name)])
         elif classname == 'Function':
-            item = self.append(parent, [self.functionIcon, member.name, classname, lineno, docstring])
+            item = self.append(parent, [self.functionIcon, member.name, classname, lineno, self._docstring_object(member, member.name)])
         elif classname == 'Class':
             if getattr(member, 'basenames', None):
-                item = self.append(parent, [self.classIcon, '%s (%s)' % (member.name, ', '.join(member.basenames)), classname, lineno, docstring])
+                item = self.append(parent, [self.classIcon, '%s (%s)' % (member.name, ', '.join(member.basenames)), classname, lineno, None])
             else:
-                item = self.append(parent, [self.classIcon, member.name, classname, lineno, docstring])
+                item = self.append(parent, [self.classIcon, member.name, classname, lineno, self._docstring_object(member, member.name)])
         elif classname == 'Assign':
             for target in member.targets:
                 self.append_member(target, parent=parent)
         elif classname == 'AssAttr':
-            item = self.append(parent, [self.attributeIcon, member.attrname, classname, lineno, docstring])
+            item = self.append(parent, [self.attributeIcon, member.attrname, classname, lineno, self._docstring_object(member, member.attrname)])
         elif classname == 'AssName':
-            item = self.append(parent, [self.attributeIcon, member.name, classname, lineno, docstring])
+            item = self.append(parent, [self.attributeIcon, member.name, classname, lineno, self._docstring_object(member, member.name)])
         else:
             if DEBUG:
                 print 'ERROR: unknown', classname, 'object:', getattr(member, 'name', str(member)), 'on line', lineno
@@ -160,6 +160,50 @@ class OutlineModel(Gtk.TreeStore):
 
         for m in getattr(member, 'body', []):
             self.append_member(m, parent=item)
+
+    def _docstring_error(self, e):
+        # format the tooltip text
+        docstring = '<b>{error}</b>: {desc}'.format(
+                error = e.__class__.__name__,
+                desc = quoteattr(e.msg)[1:-1],
+            )
+        # format the error text, if any
+        if e.text:
+            errtext = e.text.strip()
+            if errtext:
+                if len(errtext) > 500:
+                    errtext = quoteattr(errtext[:500])[1:-1] + '\n...'
+                else:
+                    errtext = quoteattr(errtext)[1:-1]
+                docstring += '\n\n\t<tt>%s</tt>' % errtext
+        return docstring
+
+    def _get_docstring(self, member):
+        docstring = getattr(member, 'doc', None)
+        try:
+            docstring = docstring.rstrip()
+            docstring = docstring.lstrip('\r\n').lstrip('\n').lstrip('\r')
+        except AttributeError:
+            return None
+        return quoteattr(docstring)[1:-1]
+
+    def _docstring_import(self, member, name, alias=None):
+        docstring = self._get_docstring(member)
+        if not docstring:
+            return None
+        name = '<b>%s</b>' % name
+        if alias:
+            name = '%s [<b>%s</b>]' % (name, alias)
+        return '\n\n'.join([name, docstring])
+
+    def _docstring_object(self, member, name, alias=None):
+        docstring = self._get_docstring(member)
+        if not docstring:
+            return None
+        name = '<b>%s</b>' % name
+        if alias:
+            name = '%s [<b>%s</b>]' % (name, alias)
+        return '\n\n'.join([name, docstring])
 
 
 class PythonOutlineInstance(object):
