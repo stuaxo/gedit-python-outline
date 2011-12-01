@@ -49,6 +49,7 @@ class OutlineBox(Gtk.Grid):
         treeview.set_rules_hint(True)
         treeview.set_headers_visible(False)
         treeview.set_enable_search(True)
+        treeview.set_can_focus(False)
         treeview.set_reorderable(False)
         treeselection = treeview.get_selection()
         treeselection.connect('changed', self.on_selection_changed)
