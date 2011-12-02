@@ -143,7 +143,7 @@ class OutlineModel(Gtk.TreeStore):
             item = self.append(parent, [self.functionIcon, member.name, classname, lineno, self._docstring_object(member, member.name)])
         elif classname == 'Class':
             if getattr(member, 'basenames', None):
-                item = self.append(parent, [self.classIcon, '%s (%s)' % (member.name, ', '.join(member.basenames)), classname, lineno, None])
+                item = self.append(parent, [self.classIcon, '%s (%s)' % (member.name, ', '.join(member.basenames)), classname, lineno, self._docstring_object(member, member.name)])
             else:
                 item = self.append(parent, [self.classIcon, member.name, classname, lineno, self._docstring_object(member, member.name)])
         elif classname == 'Assign':
