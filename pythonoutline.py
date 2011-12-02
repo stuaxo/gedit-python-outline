@@ -137,17 +137,7 @@ class OutlineModel(Gtk.TreeStore):
         classname = member.__class__.__name__
         lineno = member.lineno - 1 # document is zero indexed
 
-        if classname == 'From':
-            for name, alias in member.names:
-                if alias:
-                    text = '%s [%s] from %s' % (alias, name, member.modname)
-                    docstring = self._docstring_import(member, name, alias)
-                else:
-                    text = '%s from %s' % (name, member.modname)
-                    docstring = self._docstring_import(member, name)
-                item = self.append(parent,
-                    [self.importIcon, text, classname, lineno, docstring])
-        elif classname == 'Import':
+        if classname in ['From', 'Import']:
             for name, alias in member.names:
                 if alias:
                     text = '%s [%s]' % (alias, name)
@@ -220,13 +210,25 @@ class OutlineModel(Gtk.TreeStore):
         return quoteattr(docstring)[1:-1]
 
     def _docstring_import(self, member, name, alias=None):
+        classname = member.__class__.__name__
         docstring = self._get_docstring(member)
-        if not docstring:
-            return None
-        name = '<b>%s</b>' % name
         if alias:
-            name = '%s [<b>%s</b>]' % (name, alias)
-        return '\n\n'.join([name, docstring])
+            if classname == 'From':
+                tpl = '<b>{a}</b> <small>[originally <b>{n}</b>]</small>\n' \
+                    '  <small>from <tt>{p}</tt></small>'
+            else:
+                tpl = '<b>{a}</b> <small>[originally <b>{n}</b>]</small>'
+        else:
+            if classname == 'From':
+                tpl = '<b>{n}</b>\n' \
+                    '  <small>from <tt>{p}</tt></small>'
+            else:
+                return None
+        name = tpl.format(a=alias, n=name,
+            p=member.modname if classname == 'From' else '')
+        if docstring:
+            return '\n\n'.join([name, docstring])
+        return name
 
     def _docstring_object(self, member, name, alias=None):
         docstring = self._get_docstring(member)
