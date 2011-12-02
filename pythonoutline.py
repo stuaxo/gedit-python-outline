@@ -42,7 +42,8 @@ class OutlineBox(Gtk.Grid):
         self.orientation = Gtk.Orientation.VERTICAL
 
         scrolledwindow = Gtk.ScrolledWindow()
-        scrolledwindow.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolledwindow.set_policy(Gtk.PolicyType.AUTOMATIC,
+            Gtk.PolicyType.AUTOMATIC)
         scrolledwindow.set_property('expand', True)
 
         self.treeview = treeview = Gtk.TreeView()
@@ -93,12 +94,18 @@ class OutlineBox(Gtk.Grid):
 
 
 class OutlineModel(Gtk.TreeStore):
-    moduleIcon = Gtk.Window().render_icon(Gtk.STOCK_COPY, Gtk.IconSize.MENU)
-    importIcon = Gtk.Window().render_icon(Gtk.STOCK_JUMP_TO, Gtk.IconSize.MENU)
-    classIcon = Gtk.Window().render_icon(Gtk.STOCK_FILE, Gtk.IconSize.MENU)
-    functionIcon = Gtk.Window().render_icon(Gtk.STOCK_EXECUTE, Gtk.IconSize.MENU)
-    attributeIcon = Gtk.Window().render_icon(Gtk.STOCK_COPY, Gtk.IconSize.MENU)
-    errorIcon = Gtk.Window().render_icon(Gtk.STOCK_DIALOG_ERROR, Gtk.IconSize.MENU)
+    moduleIcon = Gtk.Window().render_icon(
+        Gtk.STOCK_COPY, Gtk.IconSize.MENU)
+    importIcon = Gtk.Window().render_icon(
+        Gtk.STOCK_JUMP_TO, Gtk.IconSize.MENU)
+    classIcon = Gtk.Window().render_icon(
+        Gtk.STOCK_FILE, Gtk.IconSize.MENU)
+    functionIcon = Gtk.Window().render_icon(
+        Gtk.STOCK_EXECUTE, Gtk.IconSize.MENU)
+    attributeIcon = Gtk.Window().render_icon(
+        Gtk.STOCK_COPY, Gtk.IconSize.MENU)
+    errorIcon = Gtk.Window().render_icon(
+        Gtk.STOCK_DIALOG_ERROR, Gtk.IconSize.MENU)
 
     def __init__(self, view, document):
         self._view = view
@@ -108,16 +115,19 @@ class OutlineModel(Gtk.TreeStore):
         Gtk.TreeStore.__init__(self, GdkPixbuf.Pixbuf, str, str, int, str)
 
         if not builder:
-            self.append(None, [self.errorIcon, 'logilab.astng missing or invalid', None, -1, None])
+            self.append(None, [self.errorIcon,
+                'logilab.astng missing or invalid', None, -1, None])
             return
-        
+
         start, end = document.get_bounds()
         text = document.get_text(start, end, False)
-        
+
         try:
             tree = builder.ASTNGBuilder().string_build(text)
         except Exception, e:
-            self.append(None, [self.errorIcon, '%s\n\t%s' % (e.__class__.__name__, e.msg), None, e.lineno-1, self._docstring_error(e)])
+            self.append(None, [self.errorIcon,
+                '%s\n\t%s' % (e.__class__.__name__, e.msg),
+                None, e.lineno-1, self._docstring_error(e)])
             return
 
         for n in tree.body:
@@ -130,32 +140,54 @@ class OutlineModel(Gtk.TreeStore):
         if classname == 'From':
             for name, alias in member.names:
                 if alias:
-                    item = self.append(parent, [self.importIcon, '%s [%s] from %s' % (alias, name, member.modname), classname, lineno, self._docstring_import(member, name, alias)])
+                    text = '%s [%s] from %s' % (alias, name, member.modname)
+                    docstring = self._docstring_import(member, name, alias)
                 else:
-                    item = self.append(parent, [self.importIcon, '%s from %s' % (name, member.modname), classname, lineno, self._docstring_import(member, name)])
+                    text = '%s from %s' % (name, member.modname)
+                    docstring = self._docstring_import(member, name)
+                item = self.append(parent,
+                    [self.importIcon, text, classname, lineno, docstring])
         elif classname == 'Import':
             for name, alias in member.names:
                 if alias:
-                    item = self.append(parent, [self.importIcon, '%s [%s]' % (alias, name), classname, lineno, self._docstring_import(member, name, alias)])
+                    text = '%s [%s]' % (alias, name)
+                    docstring = self._docstring_import(member, name, alias)
                 else:
-                    item = self.append(parent, [self.importIcon, name, classname, lineno, self._docstring_import(member, name)])
+                    text = name
+                    docstring = self._docstring_import(member, name)
+                item = self.append(parent,
+                    [self.importIcon, text, classname, lineno, docstring])
         elif classname == 'Function':
-            item = self.append(parent, [self.functionIcon, member.name, classname, lineno, self._docstring_object(member, member.name)])
+            text = member.name
+            docstring = self._docstring_object(member, member.name)
+            item = self.append(parent,
+                [self.functionIcon, text, classname, lineno, docstring])
         elif classname == 'Class':
             if getattr(member, 'basenames', None):
-                item = self.append(parent, [self.classIcon, '%s (%s)' % (member.name, ', '.join(member.basenames)), classname, lineno, self._docstring_object(member, member.name)])
+                text = '%s (%s)' % (member.name, ', '.join(member.basenames))
+                docstring = self._docstring_object(member, member.name)
             else:
-                item = self.append(parent, [self.classIcon, member.name, classname, lineno, self._docstring_object(member, member.name)])
+                text = member.name
+                docstring = self._docstring_object(member, member.name)
+            item = self.append(parent,
+                [self.classIcon, text, classname, lineno, docstring])
         elif classname == 'Assign':
             for target in member.targets:
                 self.append_member(target, parent=parent)
         elif classname == 'AssAttr':
-            item = self.append(parent, [self.attributeIcon, member.attrname, classname, lineno, self._docstring_object(member, member.attrname)])
+            text = member.attrname
+            docstring = self._docstring_object(member, member.attrname)
+            item = self.append(parent,
+                [self.attributeIcon, text, classname, lineno, docstring])
         elif classname == 'AssName':
-            item = self.append(parent, [self.attributeIcon, member.name, classname, lineno, self._docstring_object(member, member.name)])
+            text = member.name
+            docstring = self._docstring_object(member, member.name)
+            item = self.append(parent,
+                [self.attributeIcon, text, classname, lineno, docstring])
         else:
             if DEBUG:
-                print 'ERROR: unknown', classname, 'object:', getattr(member, 'name', str(member)), 'on line', lineno
+                print 'ERROR: unknown', classname, 'object:', \
+                    getattr(member, 'name', str(member)), 'on line', lineno
             return
 
         for m in getattr(member, 'body', []):
@@ -218,7 +250,7 @@ class PythonOutlineInstance(object):
         # add the outline control to the side panel tab
         self.panel = self._window.get_side_panel()
         self.panel.add_item(
-            self.outlinebox, self._name, self._title, 
+            self.outlinebox, self._name, self._title,
             Gtk.Image.new_from_stock(Gtk.STOCK_INDEX, Gtk.IconSize.MENU)
         )
         self.panel.activate_item(self.outlinebox)
@@ -230,7 +262,8 @@ class PythonOutlineInstance(object):
         self._plugin = None
 
     def update_treeview(self):
-        model = OutlineModel(self._window.get_active_view(), self._window.get_active_document())
+        model = OutlineModel(self._window.get_active_view(),
+            self._window.get_active_document())
         self.outlinebox.treeview.set_model(model)
 
 
@@ -244,12 +277,12 @@ class PythonOutlinePlugin(GObject.Object, Gedit.WindowActivatable):
 
     def do_activate(self):
         self._handlers = []
-        self._handlers.append(
-            self.window.connect('tab-removed', self.on_tab_removed))
-        self._handlers.append(
-            self.window.connect('active-tab-changed', self.on_active_tab_changed))
-        self._handlers.append(
-            self.window.connect('active-tab-state-changed', self.on_active_tab_state_changed))
+        self._handlers.append(self.window.connect(
+            'tab-removed', self.on_tab_removed))
+        self._handlers.append(self.window.connect(
+            'active-tab-changed', self.on_active_tab_changed))
+        self._handlers.append(self.window.connect(
+            'active-tab-state-changed', self.on_active_tab_state_changed))
 
     def do_deactivate(self):
         for handler_id in self._handlers[:]:
@@ -268,7 +301,7 @@ class PythonOutlinePlugin(GObject.Object, Gedit.WindowActivatable):
 
     def on_active_tab_state_changed(self, window, data=None):
         self.update_outline(window)
-            
+
     def update_outline(self, window):
         document = window.get_active_document()
         outline = self._instances.get(window)
