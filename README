@@ -1,3 +1,14 @@
 The gedit Python outline plugin provides a Python code outline side pane.
 
-https://live.gnome.org/Gedit/PythonOutlinePlugin
+https://live.gnome.org/Gedit/PythonOutlinePlugin (the old gedit2 version 
+of the plugin)
+
+To install, copy these files to the ~/.local/share/gedit/plugins/ directory, 
+and restart gedit. Now when you go to the Preferences dialog and click on 
+the Plugins tab, you'll see "Python Outline" ready to be enabled.
+
+After enabling, the plugin will create an outline pane in your left panel 
+whenever you have a python file open in the active tab.
+
+NOTE: this plugin requires the logilab-astng python library. In Ubuntu, this
+is in the default repositories, and the package is called python-logilab-astng.
