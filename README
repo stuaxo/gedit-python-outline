@@ -11,4 +11,4 @@ After enabling, the plugin will create an outline pane in your left panel
 whenever you have a python file open in the active tab.
 
 NOTE: this plugin requires the logilab-astng python library. In Ubuntu, this
-is in the default repositories, and the package is called python-logilab-astng.
+is in the default repositories, and the package is called python3-logilab-astng.
