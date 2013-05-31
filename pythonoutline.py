@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+from __future__ import print_function
 from xml.sax.saxutils import quoteattr
 from gi.repository import Gtk, GObject, Gedit, GdkPixbuf
 try:
@@ -124,7 +125,7 @@ class OutlineModel(Gtk.TreeStore):
 
         try:
             tree = builder.ASTNGBuilder().string_build(text)
-        except Exception, e:
+        except Exception as e:
             self.append(None, [self.errorIcon,
                 '%s\n\t%s' % (e.__class__.__name__, e.msg),
                 None, e.lineno-1, self._docstring_error(e)])
@@ -176,8 +177,8 @@ class OutlineModel(Gtk.TreeStore):
                 [self.attributeIcon, text, classname, lineno, docstring])
         else:
             if DEBUG:
-                print 'ERROR: unknown', classname, 'object:', \
-                    getattr(member, 'name', str(member)), 'on line', lineno
+                print('ERROR: unknown', classname, 'object:', \
+                    getattr(member, 'name', str(member)), 'on line', lineno)
             return
 
         for m in getattr(member, 'body', []):
