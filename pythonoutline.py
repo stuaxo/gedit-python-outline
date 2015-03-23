@@ -22,7 +22,7 @@ from xml.sax.saxutils import quoteattr
 from gi.repository import Gtk, GObject, Gedit, GdkPixbuf
 import sys
 try:
-    from logilab.astng import builder
+    from astroid import builder
 except ImportError:
     builder = None
 
@@ -125,7 +125,7 @@ class OutlineModel(Gtk.TreeStore):
         text = document.get_text(start, end, False)
 
         try:
-            tree = builder.ASTNGBuilder().string_build(text)
+            tree = builder.AstroidBuilder().string_build(text)
         except Exception as e:
             tb=sys.exc_info()[2]
             lineno=tb.tb_lineno-1
