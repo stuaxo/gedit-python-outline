@@ -20,8 +20,9 @@
 from __future__ import print_function
 from xml.sax.saxutils import quoteattr
 from gi.repository import Gtk, GObject, Gedit, GdkPixbuf
+import sys
 try:
-    from logilab.astng import builder
+    from astroid import builder
 except ImportError:
     builder = None
 
@@ -124,11 +125,13 @@ class OutlineModel(Gtk.TreeStore):
         text = document.get_text(start, end, False)
 
         try:
-            tree = builder.ASTNGBuilder().string_build(text)
+            tree = builder.AstroidBuilder().string_build(text)
         except Exception as e:
+            tb=sys.exc_info()[2]
+            lineno=tb.tb_lineno-1
             self.append(None, [self.errorIcon,
-                '%s\n\t%s' % (e.__class__.__name__, e.msg),
-                None, e.lineno-1, self._docstring_error(e)])
+                '%s\n\t%s' % (e.__class__.__name__, str(e)),
+                None, lineno-1, self._docstring_error(e)])
             return
 
         for n in tree.body:
@@ -188,17 +191,17 @@ class OutlineModel(Gtk.TreeStore):
         # format the tooltip text
         docstring = '<b>{error}</b>: {desc}'.format(
                 error = e.__class__.__name__,
-                desc = quoteattr(e.msg)[1:-1],
+                desc = quoteattr(str(e))[1:-1],
             )
-        # format the error text, if any
-        if e.text:
-            errtext = e.text.strip()
-            if errtext:
-                if len(errtext) > 500:
-                    errtext = quoteattr(errtext[:500])[1:-1] + '\n...'
-                else:
-                    errtext = quoteattr(errtext)[1:-1]
-                docstring += '\n\n\t<tt>%s</tt>' % errtext
+        ## format the error text, if any
+        #if e.text:
+        #    errtext = e.text.strip()
+        #    if errtext:
+        #        if len(errtext) > 500:
+        #            errtext = quoteattr(errtext[:500])[1:-1] + '\n...'
+        #        else:
+        #            errtext = quoteattr(errtext)[1:-1]
+        #        docstring += '\n\n\t<tt>%s</tt>' % errtext
         return docstring
 
     def _get_docstring(self, member):
