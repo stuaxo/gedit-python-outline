@@ -255,15 +255,12 @@ class PythonOutlineInstance(object):
         self.outlinebox = OutlineBox()
         # add the outline control to the side panel tab
         self.panel = self._window.get_side_panel()
-        self.panel.add_item(
-            self.outlinebox, self._name, self._title,
-            Gtk.Image.new_from_stock(Gtk.STOCK_INDEX, Gtk.IconSize.MENU)
-        )
-        self.panel.activate_item(self.outlinebox)
+        self.panel.add_titled(self.outlinebox, self._name, self._title)
+        self.panel.set_visible_child(self.outlinebox)
 
     def deactivate(self):
         # remove the side panel tab that has our outline
-        self.panel.remove_item(self.outlinebox)
+        self.panel.remove(self.outlinebox)
         self._window = None
         self._plugin = None
 
